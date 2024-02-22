@@ -39,6 +39,7 @@ func main() {
 
 	if config.SourceFileName == "" {
 		fmt.Println("The -source flag cannot be empty")
+		os.Exit(1)
 	}
 
 	fh, err := os.Open(config.SourceFileName)
@@ -66,6 +67,8 @@ func main() {
 	// Since we're manually constructing the JSON document, to save some memory and overhead, we define some wrappers here.
 	finalizeDoc := func(result string, meta Meta) string {
 
+		// we naively concatenate a comma after each array element to our buffer, here we chop the last one off,
+		// if there is one. This way we only have one if statement and hopefully a lot less branch miss-predictions.
 		if ll := len(result); result[ll-1:] == "," {
 			result = result[:ll-1]
 		}
@@ -79,6 +82,7 @@ func main() {
 
 	// addData JSON re-encodes the type we read from the JSON decoder and adds it to the buffer with a trailing comma
 	addData := func(buf *strings.Builder, enc *json.Encoder, d any) error {
+
 		// TODO: We only care about file offset and range, converting to types is a lot of unnecessary overhead
 		err := enc.Encode(d)
 
@@ -96,9 +100,8 @@ func main() {
 			return "", err
 		}
 
-		n, err := io.WriteString(fh, res)
+		_, err = io.WriteString(fh, res)
 		if err != nil {
-			fmt.Printf("Failed to write to output file %q (%d/%d bytes)", err.Error(), n, len(res))
 			return "", err
 		}
 
@@ -137,10 +140,10 @@ func main() {
 				continue
 			}
 
-			i = 0
-			docCnt++
 			fmt.Printf("Wrote file: %s\n", fileName)
 
+			i = 0
+			docCnt++
 		}
 	}
 
