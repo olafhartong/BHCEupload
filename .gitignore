@@ -1,0 +1,4 @@
+dist/*
+.goreleaser.yaml
+.idea/*
+BHCEupload
